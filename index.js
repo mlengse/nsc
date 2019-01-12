@@ -5,7 +5,7 @@ const crypto = require('crypto')
 const { Client } = require("node-rest-client");
 
 const xConsId = process.env.XCONSID
-const consPwd = process.env.consPwd
+const consPwd = process.env.CONSPWD
 const usernamePcare = process.env.PCAREUSR
 const passwordPcare = process.env.PCAREPWD
 const kdAplikasi = process.env.KDAPP
@@ -20,14 +20,6 @@ const getArgs = () => {
       .update(var1)
       .digest("base64");
     const xAuthorization = `Basic ${Buffer.from(`${usernamePcare}:${passwordPcare}:${kdAplikasi}`).toString("base64")}`;
-
-
-/*
-    console.log(xConsId)
-    console.log(xTimestamp)
-    console.log(xSignature)
-    console.log(xAuthorization)
-*/
 
     return { headers: { "X-cons-id": xConsId, "X-Timestamp": xTimestamp, "X-Signature": xSignature, "X-Authorization": xAuthorization } };
 }
@@ -96,7 +88,50 @@ const getSadar = async () => {
     return response.list;
 };
 
+const getRujukan = async noRujukan => {
+    const apiURL = `${baseURL}/kunjungan/rujukan/${noRujukan}`;
+    const args = getArgs()
+    const client = new Client();
+    let { response } = await new Promise(resolve => client.get(apiURL, args, data => resolve(data)))
+    //console.log(data)
+    return response
+
+}
+
+const getRiwayat = async noBPJS => {
+    const args = getArgs();
+    const client = new Client();
+    let apiURL = `${baseURL}/kunjungan/peserta/${noBPJS}`;
+    let { response } = await new Promise(resolve =>
+        client.get(apiURL, args, data => resolve(data))
+    );
+    //console.log(response);
+    return response.list;
+
+}
+
+const addKunjungan = async kunjungan => {
+    const client = new Client();
+    const args = {
+        data: kunjungan,
+        headers: getArgs()
+    };
+    let apiURL = `${baseURL}/kunjungan/peserta/${noBPJS}`;
+
+    let data = await new Promise(resolve =>
+        client.post(apiURL, args, data => resolve(data))
+    )
+
+    return data
+}
+
+const addPendaftaran = async 
+
 module.exports = {
+    addPendaftaran,
+    addKunjungan,
+    getRiwayat,
+    getRujukan,
     getSadar,
     getDokter,
     getDiagnosa,
@@ -104,9 +139,12 @@ module.exports = {
 }
 
 ;(async()=> {
-
-    let sadar = await getSadar()
-    console.log(sadar)
+//    let riwayat = await getRiwayat("0000640927203");
+//   console.log(riwayat)
+//    let rujukan = await getRujukan("112405030119P001328");
+//    console.log(rujukan)
+//    let sadar = await getSadar()
+//    console.log(sadar)
 //    let dokter = await getDokter()
 //    console.log(dokter)
 //    let diagnosa = await getDiagnosa("pregn");
