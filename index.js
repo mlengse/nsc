@@ -1,156 +1,101 @@
 require('dotenv').config()
 
 const moment = require('moment')
-const crypto = require('crypto')
-const { Client } = require("node-rest-client");
+const logUpdate = require("log-update");
+const { query, aql } = require('./db')
+const {
+    getPendaftaranProvider,
+    addPendaftaran,
+} = require('./rest-api')
 
-const xConsId = process.env.XCONSID
-const consPwd = process.env.CONSPWD
-const usernamePcare = process.env.PCAREUSR
-const passwordPcare = process.env.PCAREPWD
-const kdAplikasi = process.env.KDAPP
-const baseURL = process.env.APIV3
-
-
-const getArgs = () => {
-    const xTimestamp = moment.utc().format("X");
-    const var1 = `${xConsId}&${xTimestamp}`;
-    const xSignature = crypto
-      .createHmac("sha256", consPwd)
-      .update(var1)
-      .digest("base64");
-    const xAuthorization = `Basic ${Buffer.from(`${usernamePcare}:${passwordPcare}:${kdAplikasi}`).toString("base64")}`;
-
-    return { headers: { "X-cons-id": xConsId, "X-Timestamp": xTimestamp, "X-Signature": xSignature, "X-Authorization": xAuthorization } };
-}
-
-const getPeserta = async noBPJS => {
-    const apiURL = `${baseURL}/peserta/${noBPJS}`;
-    const args = getArgs()
-    const client = new Client();
-    let {response} = await new Promise(resolve => client.get(apiURL, args, data => resolve(data)))
-    //console.log(data)
-    return response
-}
-
-const getDiagnosa = async keyword => {
-    const args = getArgs();
-    const client = new Client();
-    let listAll = []
-    let countAll = 1
-    while (listAll.length < countAll) {
-        let start = listAll.length
-        let apiURL = `${baseURL}/diagnosa/${keyword}/${start}/100`;
-        let { response } = await new Promise(resolve =>
-            client.get(apiURL, args, data => resolve(data))
-        );
-        //console.log(response);
-        if(response.count) {
-            countAll = response.count
-        }
-        if(response.list && response.list.length) {
-            listAll = [...listAll, ...response.list]
-        }
-    } 
-    return listAll;
-}
-
-const getDokter = async () => {
-    const args = getArgs();
-    const client = new Client();
-    let listAll = []
-    let countAll = 1
-    while (listAll.length < countAll) {
-        let start = listAll.length
-        let apiURL = `${baseURL}/dokter/${start}/100`;
-        let { response } = await new Promise(resolve =>
-            client.get(apiURL, args, data => resolve(data))
-        );
-        //console.log(response);
-        if (response.count) {
-            countAll = response.count
-        }
-        if (response.list && response.list.length) {
-            listAll = [...listAll, ...response.list]
-        }
-    }
-    return listAll;
-}
-
-const getSadar = async () => {
-    const args = getArgs();
-    const client = new Client();
-    let apiURL = `${baseURL}/kesadaran`;
-    let { response } = await new Promise(resolve =>
-      client.get(apiURL, args, data => 
-        resolve(data))
-    );
-    return response.list;
+const writeStat = (tgl, jml, total) => {
+  logUpdate(`
+  tgl: ${tgl}
+  jml kunj hari ini: ${jml}
+  jml kunj bln ini: ${total}
+`);
 };
 
-const getRujukan = async noRujukan => {
-    const apiURL = `${baseURL}/kunjungan/rujukan/${noRujukan}`;
-    const args = getArgs()
-    const client = new Client();
-    let { response } = await new Promise(resolve => client.get(apiURL, args, data => resolve(data)))
-    //console.log(data)
-    return response
+const jmlPeserta = process.env.JML
 
-}
+const uniqEs6 = arrArg =>
+  arrArg.filter((elem, pos, arr) => arr.indexOf(elem) == pos);
 
-const getRiwayat = async noBPJS => {
-    const args = getArgs();
-    const client = new Client();
-    let apiURL = `${baseURL}/kunjungan/peserta/${noBPJS}`;
-    let { response } = await new Promise(resolve =>
-        client.get(apiURL, args, data => resolve(data))
-    );
-    //console.log(response);
-    return response.list;
+const getRandomSubarray = (arr, size) => {
+  let shuffled = arr.slice(0),
+    i = arr.length,
+    temp,
+    index;
+  while (i--) {
+    index = Math.floor((i + 1) * Math.random());
+    temp = shuffled[index];
+    shuffled[index] = shuffled[i];
+    shuffled[i] = temp;
+  }
+  return shuffled.slice(0, size);
+};
 
-}
+  //console.log(moment().date())
 
-const addKunjungan = async kunjungan => {
-    const client = new Client();
-    const args = {
-        data: kunjungan,
-        headers: getArgs()
-    };
-    let apiURL = `${baseURL}/kunjungan/peserta/${noBPJS}`;
+;(async ()=>{
 
-    let data = await new Promise(resolve =>
-        client.post(apiURL, args, data => resolve(data))
-    )
+    let tgl = moment().date()
+    let blnThn = moment().format('MM-YYYY')
+    let kunjBlnIni = []
 
-    return data
-}
+    while(tgl) {
+        //console.log(tgl)
+        let tglHariIni = `${tgl}-${blnThn}`
+        let kunjHariIni = await getPendaftaranProvider(tglHariIni)
+        kunjBlnIni = [ ...kunjBlnIni, ...kunjHariIni]
+        writeStat(tglHariIni, kunjHariIni.length, kunjBlnIni.length)
+        tgl--
+    }
 
-const addPendaftaran = async 
+    const kartuList = kunjBlnIni.map( ({ peserta : { noKartu } }) => noKartu)
+    const uniqKartu = uniqEs6(kartuList)
+    console.log(`jml kunj unik: ${uniqKartu.length}`)
 
-module.exports = {
-    addPendaftaran,
-    addKunjungan,
-    getRiwayat,
-    getRujukan,
-    getSadar,
-    getDokter,
-    getDiagnosa,
-    getPeserta,
-}
+    if (uniqKartu.length/jmlPeserta < 0.15) {
+        const kekurangan = jmlPeserta*0.15 - uniqKartu.length
+        console.log(`kekurangan contact rate: ${kekurangan}`);
+        const sisaHari = moment().to(moment().endOf("month"));
+        console.log(`sisa hari: ${sisaHari}`);
+        const pembagi = sisaHari
+          .replace("in", "")
+          .replace("days", "")
+          .trim();
+        const akanDiinput = Math.floor((kekurangan / pembagi / 6) * 0.6);
+        console.log(`akan diinput: ${akanDiinput}`)
+        const listAll = await query(aql`FOR j IN jkn FILTER j.aktif == true AND ( CONTAINS(j.ppk, 'Sibela') OR CONTAINS(j.ppk, 'Sibela') OR MATCHES(j.kdProviderPst, { "nmProvider": "Sibela " })) RETURN { no: j._key }`);
+        console.log(`jml pst di database: ${listAll.length}`);
+        const listReady = listAll.filter(({ no }) => uniqKartu.indexOf(no) == -1)
+        console.log(`jml pst blm diinput: ${listReady.length}`);
+        const randomList = getRandomSubarray(listReady, akanDiinput)
+        const detailList = randomList.map( ({no}) => ({
+            "kdProviderPeserta": process.env.PCAREUSR,
+            "tglDaftar": moment().format('DD-MM-YYYY'),
+            "noKartu": no,
+            "kdPoli": '021',
+            "keluhan": null,
+            "kunjSakit": false,
+            "sistole": 0,
+            "diastole": 0,
+            "beratBadan": 0,
+            "tinggiBadan": 0,
+            "respRate": 0,
+            "heartRate": 0,
+            "rujukBalik": 0,
+            "kdTkp": '10'
+        }))
 
-;(async()=> {
-//    let riwayat = await getRiwayat("0000640927203");
-//   console.log(riwayat)
-//    let rujukan = await getRujukan("112405030119P001328");
-//    console.log(rujukan)
-//    let sadar = await getSadar()
-//    console.log(sadar)
-//    let dokter = await getDokter()
-//    console.log(dokter)
-//    let diagnosa = await getDiagnosa("pregn");
-//    console.log(JSON.stringify(diagnosa));
-//    console.log(diagnosa.length)
-   // let peserta = await getPeserta("0000640927203");
-   // console.log(peserta)
+        //for(let kunj of detailList) {
+            const kunj = detailList[0]
+           // console.log(kunj)
+            let response = await addPendaftaran(kunj)
+            console.log(response)
+        //}
+
+   }
+
 })()
-

@@ -18,7 +18,10 @@
   },
   "homepage": "https://github.com/mlengse/nsc#readme",
   "dependencies": {
+    "arangojs": "^6.10.0",
+    "axios": "^0.18.0",
     "dotenv": "^6.2.0",
+    "log-update": "^2.3.0",
     "moment": "^2.23.0",
     "node-rest-client": "^3.1.0"
   }
