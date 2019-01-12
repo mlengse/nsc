@@ -1,0 +1,25 @@
+{
+  "name": "nsc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mlengse/nsc.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mlengse/nsc/issues"
+  },
+  "homepage": "https://github.com/mlengse/nsc#readme",
+  "dependencies": {
+    "dotenv": "^6.2.0",
+    "moment": "^2.23.0",
+    "node-rest-client": "^3.1.0"
+  }
+}

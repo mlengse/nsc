@@ -105,8 +105,8 @@ module.exports = {
 
 ;(async()=> {
 
-//    let sadar = await getSadar()
-//    console.log(sadar)
+    let sadar = await getSadar()
+    console.log(sadar)
 //    let dokter = await getDokter()
 //    console.log(dokter)
 //    let diagnosa = await getDiagnosa("pregn");
