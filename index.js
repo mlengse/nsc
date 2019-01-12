@@ -11,6 +11,7 @@ const passwordPcare = process.env.PCAREPWD
 const kdAplikasi = process.env.KDAPP
 const baseURL = process.env.APIV3
 
+
 const getArgs = () => {
     const xTimestamp = moment.utc().format("X");
     const var1 = `${xConsId}&${xTimestamp}`;
@@ -20,7 +21,7 @@ const getArgs = () => {
       .digest("base64");
     const xAuthorization = `Basic ${Buffer.from(`${usernamePcare}:${passwordPcare}:${kdAplikasi}`).toString("base64")}`;
 
-    
+
 /*
     console.log(xConsId)
     console.log(xTimestamp)
