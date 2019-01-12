@@ -8,6 +8,8 @@ const {
     addPendaftaran,
 } = require('./rest-api')
 
+const { NO_KARTU_QUERY } = require('./query')
+
 const writeStat = (tgl, jml, total) => {
   logUpdate(`
   tgl: ${tgl}
@@ -67,7 +69,7 @@ module.exports = async ()=>{
           .trim();
         const akanDiinput = Math.floor((kekurangan / pembagi / 6) * 0.6);
         console.log(`akan diinput: ${akanDiinput}`)
-        const listAll = await query(aql`FOR j IN jkn FILTER j.aktif == true AND ( CONTAINS(j.ppk, 'Sibela') OR CONTAINS(j.ppk, 'Sibela') OR MATCHES(j.kdProviderPst, { "nmProvider": "Sibela " })) RETURN { no: j._key }`);
+        const listAll = await query(aql`${NO_KARTU_QUERY}`);
         console.log(`jml pst di database: ${listAll.length}`);
         const listReady = listAll.filter(({ no }) => uniqKartu.indexOf(no) == -1)
         console.log(`jml pst blm diinput: ${listReady.length}`);
