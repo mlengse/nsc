@@ -62,3 +62,4 @@ typings/
 .next
 
 query.js
+package-lock.json
