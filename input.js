@@ -8,8 +8,6 @@ const {
     addPendaftaran,
 } = require('./rest-api')
 
-const { NO_KARTU_QUERY } = require('./query')
-
 const writeStat = (tgl, jml, total) => {
   logUpdate(`
   tgl: ${tgl}
@@ -69,33 +67,39 @@ module.exports = async ()=>{
           .trim();
         const akanDiinput = Math.floor((kekurangan / pembagi / 6) * 0.6);
         console.log(`akan diinput: ${akanDiinput}`)
-        const listAll = await query(aql`${NO_KARTU_QUERY}`);
-        console.log(`jml pst di database: ${listAll.length}`);
-        const listReady = listAll.filter(({ no }) => uniqKartu.indexOf(no) == -1)
-        console.log(`jml pst blm diinput: ${listReady.length}`);
-        const randomList = getRandomSubarray(listReady, akanDiinput)
-        const detailList = randomList.map( ({no}) => ({
-            "kdProviderPeserta": process.env.PCAREUSR,
-            "tglDaftar": moment().format('DD-MM-YYYY'),
-            "noKartu": no,
-            "kdPoli": '021',
-            "keluhan": null,
-            "kunjSakit": false,
-            "sistole": 0,
-            "diastole": 0,
-            "beratBadan": 0,
-            "tinggiBadan": 0,
-            "respRate": 0,
-            "heartRate": 0,
-            "rujukBalik": 0,
-            "kdTkp": '10'
-        }))
+        const listAll = await query(aql`FOR j IN jkn FILTER j.aktif == true AND ( CONTAINS(j.ppk, 'Sibela') OR CONTAINS(j.ppk, 'Sibela') OR MATCHES(j.kdProviderPst, { "nmProvider": "Sibela " })) RETURN { no: j._key }`);
 
-        for(let kunj of detailList) {
-            //const kunj = detailList[0]
-            console.log(kunj)
-            let response = await addPendaftaran(kunj)
-            console.log(response)
+        if(listAll && listAll.length) {
+          console.log(`jml pst di database: ${listAll.length}`);
+          const listReady = listAll.filter(({ no }) => uniqKartu.indexOf(no) == -1)
+          console.log(`jml pst blm diinput: ${listReady.length}`);
+          const randomList = getRandomSubarray(listReady, akanDiinput)
+          const detailList = randomList.map( ({no}) => ({
+              "kdProviderPeserta": process.env.PCAREUSR,
+              "tglDaftar": moment().format('DD-MM-YYYY'),
+              "noKartu": no,
+              "kdPoli": '021',
+              "keluhan": null,
+              "kunjSakit": false,
+              "sistole": 0,
+              "diastole": 0,
+              "beratBadan": 0,
+              "tinggiBadan": 0,
+              "respRate": 0,
+              "heartRate": 0,
+              "rujukBalik": 0,
+              "kdTkp": '10'
+          }))
+  
+          for(let kunj of detailList) {
+              //const kunj = detailList[0]
+              console.log(kunj.noKartu)
+              let response = await addPendaftaran(kunj)
+              console.log(response)
+          }
+  
+        } else {
+          console.log('arango error')
         }
 
    }

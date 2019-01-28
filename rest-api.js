@@ -143,11 +143,17 @@ const addPendaftaran = async pendaftaran => {
         headers: headers
     })
 
-    let { data } = await instance.post("/pendaftaran", pendaftaran);
+    try{
+        let { data } = await instance.post("/pendaftaran", pendaftaran);
+        return data;
+    }catch({response: {data}}){
+        return data
+
+    }
+
 
     //console.log(data)
 
-    return data;
 
 }
 

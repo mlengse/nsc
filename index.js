@@ -1,8 +1,10 @@
+require('dotenv').config()
 const { schedule } = require('node-cron')
 const moment = require('moment')
 const inputKonseling = require('./input')
-schedule('5 13,15,17,19,21,23 * * 1-6', async () => {
+const cron = process.env.CRON
+schedule(cron, () => {
     console.log('input Konseling')
     console.log(moment().format('LLLL'))
-    await inputKonseling()
+    inputKonseling()
 })
