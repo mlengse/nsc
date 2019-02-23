@@ -13,7 +13,7 @@ const testDb = async (db) => {
             url: `http://${dbUsername}:${dbPassword}@${host}:${port}`
         });
 
-        console.log('test db')
+        //console.log('test db')
         let dbnames = await arango.listDatabases();
         if (dbnames.indexOf(db) == -1) {
             await arango.createDatabase(db).then(() => {
@@ -27,11 +27,11 @@ const testDb = async (db) => {
 
 const query = async (aq) => {
     try {
-        console.log('start')
+        //console.log('start')
         let dbready = await testDb(database);
         let cursor = await dbready.query(aq);
         let res = await cursor.all();
-        console.log('res:', res.length)
+        //console.log('res:', res.length)
 
         //info(cursor._result);
         return res;

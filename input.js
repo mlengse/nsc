@@ -1,5 +1,5 @@
 require('dotenv').config()
-
+const sisaHari = require('./sisaHari')
 const moment = require('moment')
 const logUpdate = require("log-update");
 const { query, aql } = require('./db')
@@ -53,31 +53,28 @@ module.exports = async ()=>{
     while(tgl) {
         //console.log(tgl)
         let tglHariIni = `${tgl}-${blnThn}`
-        let kunjHariIni = await getPendaftaranProvider(tglHariIni)
-        kunjBlnIni = [ ...kunjBlnIni, ...kunjHariIni]
-        writeStat(tglHariIni, kunjHariIni.length, kunjBlnIni.length)
-        tgl--
+        try{
+          let kunjHariIni = await getPendaftaranProvider(tglHariIni)
+          kunjBlnIni = [ ...kunjBlnIni, ...kunjHariIni]
+          writeStat(tglHariIni, kunjHariIni.length, kunjBlnIni.length)
+          tgl--
+        }catch(err){
+          console.log(err)
+        }
     }
 
     const kartuList = kunjBlnIni.map( ({ peserta : { noKartu } }) => noKartu)
     const uniqKartu = uniqEs6(kartuList)
     console.log(`jml kunj unik: ${uniqKartu.length}`)
 
-    if (uniqKartu.length/jmlPeserta < 0.2) {
-        const kekurangan = jmlPeserta*0.2 - uniqKartu.length
+    if (uniqKartu.length/jmlPeserta < 0.15) {
+        const kekurangan = jmlPeserta*0.15 - uniqKartu.length
         console.log(`kekurangan contact rate: ${kekurangan}`);
-        const sisaHari = moment().to(moment().endOf("month"));
-        console.log(`sisa hari: ${sisaHari}`);
-        let pembagi = sisaHari
-          .replace("in", "")
-          .replace("days", "")
-          .trim();
-        if(pembagi == 'a day') {
-          pembagi = 1
-        }
-        const akanDiinput = Math.floor((kekurangan / pembagi / 4) * 0.8);
+        let pembagi = await sisaHari()
+        if(pembagi == 0) pembagi = 1
+        const akanDiinput = Math.floor(kekurangan / pembagi / 4);
+        console.log(`sisa hari: ${pembagi}`);
         console.log(`akan diinput: ${akanDiinput}`)
-
         if(!akanDiinput) {
           console.log('kbk terpenuhi')
         } else {
@@ -104,14 +101,19 @@ module.exports = async ()=>{
                 "rujukBalik": 0,
                 "kdTkp": '10'
             }))
+            console.log('\n\n')
     
             for(let kunj of detailList) {
                 //const kunj = detailList[0]
                // console.log(kunj.noKartu)
-                let response = await addPendaftaran(kunj)
+               let response = await addPendaftaran(kunj)
                // console.log(response)
                writeRes(kunj.noKartu, response)
-               if(response.metaData.message !== 'CREATED') console.log('\n')
+               if(response.metaData.message !== 'CREATED') {
+                console.log('\n\n')
+                  //console.log(kunj.noKartu)
+                 //console.log(JSON.stringify(response, null, 2))
+               }
             }
     
           } else {
@@ -119,6 +121,8 @@ module.exports = async ()=>{
           }
   
         }
+  
+
 
    } else {
      console.log('kbk terpenuhi')
