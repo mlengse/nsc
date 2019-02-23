@@ -16,6 +16,13 @@ const writeStat = (tgl, jml, total) => {
 `);
 };
 
+const writeRes = (no, res) => {
+  logUpdate(`
+  no: ${no}
+  res: ${JSON.stringify(res, null, 2)}
+`);
+};
+
 const jmlPeserta = process.env.JML
 
 const uniqEs6 = arrArg =>
@@ -56,51 +63,64 @@ module.exports = async ()=>{
     const uniqKartu = uniqEs6(kartuList)
     console.log(`jml kunj unik: ${uniqKartu.length}`)
 
-    if (uniqKartu.length/jmlPeserta < 0.15) {
-        const kekurangan = jmlPeserta*0.15 - uniqKartu.length
+    if (uniqKartu.length/jmlPeserta < 0.2) {
+        const kekurangan = jmlPeserta*0.2 - uniqKartu.length
         console.log(`kekurangan contact rate: ${kekurangan}`);
         const sisaHari = moment().to(moment().endOf("month"));
         console.log(`sisa hari: ${sisaHari}`);
-        const pembagi = sisaHari
+        let pembagi = sisaHari
           .replace("in", "")
           .replace("days", "")
           .trim();
-        const akanDiinput = Math.floor((kekurangan / pembagi / 6) * 0.6);
+        if(pembagi == 'a day') {
+          pembagi = 1
+        }
+        const akanDiinput = Math.floor((kekurangan / pembagi / 4) * 0.8);
         console.log(`akan diinput: ${akanDiinput}`)
-        const listAll = await query(aql`FOR j IN jkn FILTER j.aktif == true AND ( CONTAINS(j.ppk, 'Sibela') OR CONTAINS(j.ppk, 'Sibela') OR MATCHES(j.kdProviderPst, { "nmProvider": "Sibela " })) RETURN { no: j._key }`);
 
-        if(listAll && listAll.length) {
-          console.log(`jml pst di database: ${listAll.length}`);
-          const listReady = listAll.filter(({ no }) => uniqKartu.indexOf(no) == -1)
-          console.log(`jml pst blm diinput: ${listReady.length}`);
-          const randomList = getRandomSubarray(listReady, akanDiinput)
-          const detailList = randomList.map( ({no}) => ({
-              "kdProviderPeserta": process.env.PCAREUSR,
-              "tglDaftar": moment().format('DD-MM-YYYY'),
-              "noKartu": no,
-              "kdPoli": '021',
-              "keluhan": null,
-              "kunjSakit": false,
-              "sistole": 0,
-              "diastole": 0,
-              "beratBadan": 0,
-              "tinggiBadan": 0,
-              "respRate": 0,
-              "heartRate": 0,
-              "rujukBalik": 0,
-              "kdTkp": '10'
-          }))
-  
-          for(let kunj of detailList) {
-              //const kunj = detailList[0]
-              console.log(kunj.noKartu)
-              let response = await addPendaftaran(kunj)
-              console.log(response)
+        if(!akanDiinput) {
+          console.log('kbk terpenuhi')
+        } else {
+          const listAll = await query(aql`FOR j IN jkn FILTER j.aktif == true AND ( CONTAINS(j.ppk, 'Sibela') OR CONTAINS(j.ppk, 'Sibela') OR MATCHES(j.kdProviderPst, { "nmProvider": "Sibela " })) RETURN { no: j._key }`);
+
+          if(listAll && listAll.length) {
+            console.log(`jml pst di database: ${listAll.length}`);
+            const listReady = listAll.filter(({ no }) => uniqKartu.indexOf(no) == -1)
+            console.log(`jml pst blm diinput: ${listReady.length}`);
+            const randomList = getRandomSubarray(listReady, akanDiinput)
+            const detailList = randomList.map( ({no}) => ({
+                "kdProviderPeserta": process.env.PCAREUSR,
+                "tglDaftar": moment().format('DD-MM-YYYY'),
+                "noKartu": no,
+                "kdPoli": '021',
+                "keluhan": null,
+                "kunjSakit": false,
+                "sistole": 0,
+                "diastole": 0,
+                "beratBadan": 0,
+                "tinggiBadan": 0,
+                "respRate": 0,
+                "heartRate": 0,
+                "rujukBalik": 0,
+                "kdTkp": '10'
+            }))
+    
+            for(let kunj of detailList) {
+                //const kunj = detailList[0]
+               // console.log(kunj.noKartu)
+                let response = await addPendaftaran(kunj)
+               // console.log(response)
+               writeRes(kunj.noKartu, response)
+               if(response.metaData.message !== 'CREATED') console.log('\n')
+            }
+    
+          } else {
+            console.log('arango error')
           }
   
-        } else {
-          console.log('arango error')
         }
 
+   } else {
+     console.log('kbk terpenuhi')
    }
 }
